@@ -10,4 +10,6 @@ export const validateBody =
         issues: result.error.issues,
       });
     }
+    req.body = result.data;
+    next();
   };

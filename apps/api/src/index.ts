@@ -1,9 +1,12 @@
 import express from "express";
 import { createServiceSchema, type CreateServiceInput } from "@bookwise/shared";
 import { validateBody } from "./middleware/validate";
+import { authRouter } from "./routes/auth";
 
 const app = express();
 app.use(express.json());
+
+app.use("/api/auth", authRouter);
 
 app.post(
   "/api/orgs/:orgId/services",

@@ -30,5 +30,6 @@ coverage/
 .vscode/*
 !.vscode/extensions.json
 
-# Claude Code local settings
-.claude/settings.local.json
+# Local tooling
+.claude/
+.serena/

@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bookwise
+      POSTGRES_PASSWORD: bookwise
+      POSTGRES_DB: bookwise
+    ports:
+      # 5432 is used by a local Postgres.app, 5433 by another project
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookwise"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:
