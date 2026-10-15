@@ -4,6 +4,7 @@ import type {
   LoginInput,
   RegisterInput,
   ResetPasswordInput,
+  VerifyEmailInput,
 } from "@bookwise/shared";
 import {
   generateToken,
@@ -11,16 +12,42 @@ import {
   hashToken,
   verifyPassword,
 } from "../../lib/crypto";
-import { sendPasswordResetEmail } from "../../lib/email";
+import { sendPasswordResetEmail, sendVerificationEmail } from "../../lib/email";
 import { AppError } from "../../lib/errors";
 import * as repository from "./auth.repository";
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const RESET_TTL_MS = 60 * 60 * 1000;
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+const appUrl = () => process.env.APP_URL ?? "http://localhost:5173";
 
 export type Session = { token: string; expiresAt: Date };
 
-const toAuthUser = ({ id, name, email }: AuthUser): AuthUser => ({ id, name, email });
+const toAuthUser = (user: {
+  id: string;
+  name: string;
+  email: string;
+  emailVerifiedAt: Date | null;
+}): AuthUser => ({
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  emailVerified: user.emailVerifiedAt !== null,
+});
+
+const sendVerification = async (user: { id: string; email: string }) => {
+  const token = generateToken();
+  await repository.replaceEmailVerificationToken({
+    tokenHash: hashToken(token),
+    userId: user.id,
+    expiresAt: new Date(Date.now() + VERIFICATION_TTL_MS),
+  });
+  // Not awaited: a slow or failing mail provider must not block or fail the request
+  sendVerificationEmail(user.email, `${appUrl()}/verify-email/${token}`).catch((err) =>
+    console.error("Failed to send verification email:", err),
+  );
+};
 
 const startSession = async (userId: string): Promise<Session> => {
   const token = generateToken();
@@ -36,6 +63,7 @@ export const register = async ({ name, email, password }: RegisterInput) => {
     passwordHash: await hashPassword(password),
   });
   if (!user) throw new AppError(409, "EmailTaken");
+  await sendVerification(user);
   return { user: toAuthUser(user), session: await startSession(user.id) };
 };
 
@@ -53,7 +81,19 @@ export const logout = (sessionToken: string) =>
 export const getCurrentUser = async (sessionToken: string) => {
   const user = await repository.findUserBySession(hashToken(sessionToken), new Date());
   if (!user) throw new AppError(401, "Unauthorized");
-  return user;
+  return toAuthUser(user);
+};
+
+export const resendVerification = async (sessionToken: string) => {
+  const user = await repository.findUserBySession(hashToken(sessionToken), new Date());
+  if (!user) throw new AppError(401, "Unauthorized");
+  if (user.emailVerifiedAt) return;
+  await sendVerification(user);
+};
+
+export const verifyEmail = async ({ token }: VerifyEmailInput) => {
+  const ok = await repository.verifyEmailWithToken(hashToken(token), new Date());
+  if (!ok) throw new AppError(400, "InvalidOrExpiredToken");
 };
 
 export const forgotPassword = async ({ email }: ForgotPasswordInput) => {
@@ -66,9 +106,8 @@ export const forgotPassword = async ({ email }: ForgotPasswordInput) => {
     userId: user.id,
     expiresAt: new Date(Date.now() + RESET_TTL_MS),
   });
-  const appUrl = process.env.APP_URL ?? "http://localhost:5173";
   // Not awaited: response time must not reveal whether the account exists
-  sendPasswordResetEmail(email, `${appUrl}/reset-password?token=${token}`).catch(
+  sendPasswordResetEmail(email, `${appUrl()}/reset-password/${token}`).catch(
     (err) => console.error("Failed to send password reset email:", err),
   );
 };

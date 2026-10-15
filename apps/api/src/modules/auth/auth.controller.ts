@@ -4,6 +4,7 @@ import type {
   LoginInput,
   RegisterInput,
   ResetPasswordInput,
+  VerifyEmailInput,
 } from "@bookwise/shared";
 import { AppError } from "../../lib/errors";
 import * as authService from "./auth.service";
@@ -56,5 +57,17 @@ export const forgotPassword: RequestHandler = async (req, res) => {
 
 export const resetPassword: RequestHandler = async (req, res) => {
   await authService.resetPassword(req.body as ResetPasswordInput);
+  res.status(204).end();
+};
+
+export const verifyEmail: RequestHandler = async (req, res) => {
+  await authService.verifyEmail(req.body as VerifyEmailInput);
+  res.status(204).end();
+};
+
+export const resendVerification: RequestHandler = async (req, res) => {
+  const token = readSessionToken(req);
+  if (!token) throw new AppError(401, "Unauthorized");
+  await authService.resendVerification(token);
   res.status(204).end();
 };

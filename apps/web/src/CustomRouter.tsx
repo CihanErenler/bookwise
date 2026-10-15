@@ -8,6 +8,7 @@ import {
   LoginPage,
   RegisterPage,
   ResetPasswordPage,
+  VerifyEmailPage,
 } from "./pages";
 
 export const CustomRouter = () => {
@@ -20,10 +21,11 @@ export const CustomRouter = () => {
       <Route path="/" element={<LandingPage />} />
       <Route element={<GuestRoute />}>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/signup" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       </Route>
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
     </Routes>
   );
 };

@@ -1,6 +1,11 @@
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "../../db";
-import { passwordResetTokens, sessions, users } from "../../db/schema";
+import {
+  emailVerificationTokens,
+  passwordResetTokens,
+  sessions,
+  users,
+} from "../../db/schema";
 
 export const findUserByEmail = async (email: string) => {
   const [user] = await db.select().from(users).where(eq(users.email, email));
@@ -32,7 +37,12 @@ export const deleteSession = (tokenHash: string) =>
 
 export const findUserBySession = async (tokenHash: string, now: Date) => {
   const [user] = await db
-    .select({ id: users.id, name: users.name, email: users.email })
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      emailVerifiedAt: users.emailVerifiedAt,
+    })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
     .where(and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, now)));
@@ -68,5 +78,38 @@ export const resetPasswordWithToken = (
     if (!token) return false;
     await tx.update(users).set({ passwordHash }).where(eq(users.id, token.userId));
     await tx.delete(sessions).where(eq(sessions.userId, token.userId));
+    return true;
+  });
+
+/** Replaces any outstanding verification token for the user with a new one. */
+export const replaceEmailVerificationToken = (values: {
+  tokenHash: string;
+  userId: string;
+  expiresAt: Date;
+}) =>
+  db.transaction(async (tx) => {
+    await tx
+      .delete(emailVerificationTokens)
+      .where(eq(emailVerificationTokens.userId, values.userId));
+    await tx.insert(emailVerificationTokens).values(values);
+  });
+
+/** Atomically consumes an unexpired verification token and marks the email verified. */
+export const verifyEmailWithToken = (tokenHash: string, now: Date) =>
+  db.transaction(async (tx) => {
+    const [token] = await tx
+      .delete(emailVerificationTokens)
+      .where(
+        and(
+          eq(emailVerificationTokens.tokenHash, tokenHash),
+          gt(emailVerificationTokens.expiresAt, now),
+        ),
+      )
+      .returning();
+    if (!token) return false;
+    await tx
+      .update(users)
+      .set({ emailVerifiedAt: now })
+      .where(eq(users.id, token.userId));
     return true;
   });

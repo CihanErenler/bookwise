@@ -60,6 +60,26 @@ export const useLogout = () => {
   });
 };
 
+export const useResendVerification = () =>
+  useMutation({ mutationFn: () => api("/auth/resend-verification", { method: "POST" }) });
+
+/**
+ * Consumes the emailed token. A query rather than a mutation so React StrictMode's
+ * double-mounted effect shares one request instead of burning the single-use token twice.
+ */
+export const useVerifyEmail = (token: string) =>
+  useQuery({
+    queryKey: ["verify-email", token],
+    queryFn: async () => {
+      await api("/auth/verify-email", { body: { token } });
+      const { user, setUser } = useAuthStore.getState();
+      if (user) setUser({ ...user, emailVerified: true });
+      return true;
+    },
+    retry: false,
+    staleTime: Infinity,
+  });
+
 export const useForgotPassword = () =>
   useMutation({
     mutationFn: (input: ForgotPasswordInput) => api("/auth/forgot-password", { body: input }),

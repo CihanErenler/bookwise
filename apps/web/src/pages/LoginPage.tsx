@@ -39,7 +39,7 @@ const LoginPage = () => {
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-gray-600">
-        Don't have an account? <Link to="/register">Register</Link>
+        Don't have an account? <Link to="/signup">Register</Link>
       </p>
     </AuthLayout>
   );
