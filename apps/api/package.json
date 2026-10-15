@@ -1,0 +1,36 @@
+{
+  "name": "@bookwise/api",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx --watch src/index.ts",
+    "build": "tsup src/index.ts --format esm --noExternal @bookwise/shared",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.11.2",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.11.2",
+  "type": "module",
+  "dependencies": {
+    "@bookwise/shared": "workspace:*",
+    "express": "^5.3.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@bookwise/tsconfig": "workspace:*",
+    "@types/express": "^5.0.6",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15"
+  }
+}

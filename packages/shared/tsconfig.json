@@ -1,0 +1,4 @@
+{
+  "extends": "@bookwise/tsconfig/base.json",
+  "include": ["src"]
+}
