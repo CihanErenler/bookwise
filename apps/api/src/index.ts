@@ -1,7 +1,8 @@
 import express from "express";
 import { createServiceSchema, type CreateServiceInput } from "@bookwise/shared";
 import { validateBody } from "./middleware/validate";
-import { authRouter } from "./routes/auth";
+import { errorHandler } from "./middleware/errorHandler";
+import { authRouter } from "./modules/auth/auth.router";
 
 const app = express();
 app.use(express.json());
@@ -18,4 +19,7 @@ app.post(
   },
 );
 
-app.listen(3000, () => console.log("API on http://localhost:3000"));
+app.use(errorHandler);
+
+const port = Number(process.env.PORT ?? 3000);
+app.listen(port, () => console.log(`API on http://localhost:${port}`));
